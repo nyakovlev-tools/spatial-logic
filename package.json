@@ -1,0 +1,23 @@
+{
+  "name": "spatial-logic",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "spatially-interpreted data structure",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nyakovlev-tools/spatial-logic.git"
+  },
+  "author": "nbaxter",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nyakovlev-tools/spatial-logic/issues"
+  },
+  "homepage": "https://github.com/nyakovlev-tools/spatial-logic#readme",
+  "devDependencies": {
+    "vitest": "^2.0.5"
+  }
+}
