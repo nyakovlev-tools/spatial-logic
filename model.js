@@ -1,8 +1,15 @@
-// TODO: just replace this with array objects.
-export function P({ path = [] } = {}) {
-    return new Proxy({}, {
-        // get: (t, key) => P({ path: [...path, key] }),
-        get: (t, key) => P({ path: [] }),
-        apply: (t, thisArg, []) => P({ path }),
-    });
+export default function Space() {
+    const _ = {
+        vector({ base, tip, forward, back, apply }) {},
+        scope(...path) { return Space(); },
+        unscope(...path) { return Space(); },
+        instance() {},
+        entity: () => ({
+            assign(value) {},
+            scope(...path) { return _.entity() },
+            resolve(handler) {handler("<TBD>")},  // resolve once
+            bind(handler) {},
+        }),
+    };
+    return _;
 }
