@@ -1,5 +1,5 @@
 export default function Space(base=[]) {
-    return _ = {
+    const _ = {
         path: base,
 
         // TODO: populate these while scoping and unscoping, possibly creating a lookup tree for intersecting points for both forward and back vector propagation
@@ -27,4 +27,5 @@ export default function Space(base=[]) {
         },
         bind(handler) {},
     };
+    return _;
 }
