@@ -1,6 +1,14 @@
 export default function Space(base=[]) {
-    const _ = {
+    return _ = {
         path: base,
+
+        // TODO: populate these while scoping and unscoping, possibly creating a lookup tree for intersecting points for both forward and back vector propagation
+        contains: {},
+        within: {},
+
+        egress: {},  // TODO: populate with vectors with this as their base
+        ingress: {},  // TODO: populate with vectors with this as their tip
+
         vector({ base, tip, forward, back, apply }) {
             for (let o of Object.values(tip)) console.log("Vector to", o.path);
         },
@@ -19,5 +27,4 @@ export default function Space(base=[]) {
         },
         bind(handler) {},
     };
-    return _;
 }
