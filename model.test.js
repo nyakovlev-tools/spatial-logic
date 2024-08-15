@@ -20,7 +20,7 @@ test('basic vector', () => {
     let _ = Space();
     define(_);
 
-    let entity = _.entity();
+    let entity = _.instance();
     entity.assign(8);
     entity.scope('half').resolve(v => expect(v).toBe(4));
 
