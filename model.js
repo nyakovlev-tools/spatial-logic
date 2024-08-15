@@ -1,31 +1,45 @@
-export default function Space(base=[]) {
+export default function Space(root=null, prototype=null) {
     const _ = {
-        path: base,
-
-        // TODO: populate these while scoping and unscoping, possibly creating a lookup tree for intersecting points for both forward and back vector propagation
-        contains: {},
-        within: {},
-
-        egress: {},  // TODO: populate with vectors with this as their base
-        ingress: {},  // TODO: populate with vectors with this as their tip
-
-        vector({ base, tip, forward, back, apply }) {
-            for (let o of Object.values(tip)) console.log("Vector to", o.path);
+        // not sure yet if these will be explicit params, or a computed result of more concrete fields.
+        // contains: new Map(),
+        // within: new Map(),
+        root,
+        keys: new Map(),
+        // aggregate,
+        scope(...path) {
+            for (let key of path) {
+                if (typeof(key) == 'string') {
+                    if (!_.root.keys.has(key)) _.root.keys.set(key, Space(_.root));
+                    // TODO: snowball each key into an aggregator as you scope down, since they technically overlap (replacing above line?)
+                }
+            }
+            // return Space([...base, ...path], dimensions);
+            return Space();
         },
-        scope(...path) { return Space([...base, ...path]); },
+        parent: null,
         unscope(...path) {
             // TODO: throw err if path mismatch
-            return Space(spec_base.slice(0, -path.length));
+            return _.parent;
         },
-        instance: () => Space(base),
+        egress: [],
+        ingress: [],
+        vector(vector) {
+            for (let [key, space] of Object.entries(vector.base)) space.egress.push({ vector, key });
+            for (let [key, space] of Object.entries(vector.tip)) space.ingress.push({ vector, key });
+        },
+        prototype,
+        instance: () => Space(_.root, _),
+        assigned: false,
+        value: null,
         assign(value) {
-            console.log("TODO: assign", value, "to", base);
+            _.value = value;
+            _.assigned = true;
         },
         resolve(handler) {
-            console.log("TODO: resolve", base);
             // handler("<TBD>");
         },
         bind(handler) {},
     };
+    if (!_.root) _.root = _;
     return _;
 }
