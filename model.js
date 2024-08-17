@@ -1,10 +1,9 @@
 export default function Space(root=null, parent=null, base=[], prototype=null) {
     const self = {
-        // not sure yet if these will be explicit params, or a computed result of more concrete fields.
         root,
         path: base,
         keys: new Map(),
-        // aggregate,
+        inverse: null,
         scope(...path) {
             let target = self;
             for (let key of path) {
@@ -15,9 +14,22 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
                     // TODO: handle filters
                 }
             }
+            let inverse = self.root.inverse;
+            for (let key of target.path.reverse()) {
+                if (typeof(key) == 'string') {
+                    if (!inverse.keys.has(key)) inverse.keys.set(key, {
+                        keys: new Map(),
+                        spaces: []
+                    });
+                    inverse = inverse.keys.get(key);
+                } else {
+                    // TODO: handle filters
+                }
+            }
+            if (!inverse.spaces.includes(target)) inverse.spaces.push(target);
             return target;
         },
-        parent: null,
+        parent,
         unscope(...path) {
             // TODO: throw err if path mismatch
             return self.parent;
@@ -38,7 +50,22 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
             return supersets;
         },
         subsets() {
-            // TODO: retrieve Space objects contained by this one. Used when walking vectors BACK.
+            let inverse = self.root.inverse;
+            for (let key of self.path.reverse()) {
+                if (typeof(key) == 'string') {
+                    console.log("GET", key);
+                    inverse = inverse.keys.get(key);
+                } else {
+                    // TODO: handle filters
+                }
+            }
+            let agg;
+            return (agg = inv => [
+                ...inv.spaces,
+                ...Array.from(inv.keys.values())
+                    .map(agg)
+                    .reduce((flat, spaces) => [...flat, ...spaces], [])
+            ])(inverse);
         },
         egress: [],
         ingress: [],
@@ -56,11 +83,25 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
         },
         resolve(handler) {
             // handler("<TBD>");
-            let ss = self.supersets();
-            console.log("SUPERSETS:", ss);
+            console.log("-- supersets --");
+            for (let ss of self.root.supersets()) console.log(ss.path);
+            console.log("-- subsets --");
+            let sss = self.subsets();
+            for (let ss of sss) {
+                console.log(ss.path, sss.indexOf(ss));
+            }
+            // TODO: walk forward with supersets, and walk back with subsets.
+            //  for each visited node, go through "visited edge" of opposite end and exit if visited point fits into edge.
+            //  "visited edge" is essentially all visited nodes (in order of visit), but you can ignore nodes once you visit something after it (since those will always be closer)
         },
         bind(handler) {},
     };
-    if (!self.root) self.root = self;
+    if (!self.root) {
+        self.root = self;
+        self.inverse = {
+            keys: new Map(),
+            spaces: []
+        };
+    }
     return self;
 }
