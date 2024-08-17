@@ -94,8 +94,10 @@ export function Space(root=null, parent=null, base=[]) {
         // NOTE: the below constructs both directions (walk forward and back) of the routing table.
         // NOTE: lookup is gonna be much more complicated with multiple entities, because entity roles will be a decisive part of the route.
         //  (when routing, possibly check chosen path before performing lookup, so that recalculation is only done when necessary?)
-        from: {},  // TODO: figure out lookup structure of routing table
-        towards: {},  // TODO: figure out lookup structure of routing table
+        from: Table(),
+        towards: Table(),
+        visited: Table(),
+        periphery: [],  // A list of visited nodes - by appending upon visit, this list will be sorted by closeness. It is used for initial intersection lookup. 
         step_forward() {},
         step_back() {},
         next_hop(target) {
@@ -113,6 +115,20 @@ export function Space(root=null, parent=null, base=[]) {
         };
         self.edge.push(self);
     }
+    return self;
+}
+
+// NOTE: table objects will be recursive and generated as needed
+// NOTE: table will be somewhat duplicate logic (particularly with key/path handling), where Space kind of extends Table; consider consolidating.
+// NOTE: the same applies to Space.inverse - except inverse is able to have multiple entries. When refactoring this code, consider focusing on consolidating all that logic.
+function Table() {
+    const self = {
+        space: null,
+        keys: new Map(),
+        lookup(path, create) {
+        },
+        insert(path, space) {},
+    };
     return self;
 }
 
