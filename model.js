@@ -1,4 +1,4 @@
-export function Space(root=null, parent=null, base=[], prototype=null) {
+export function Space(root=null, parent=null, base=[]) {
     const self = {
         root,
         path: base,
@@ -8,6 +8,7 @@ export function Space(root=null, parent=null, base=[], prototype=null) {
             let target = self;
             for (let key of path) {
                 if (typeof(key) == 'string') {
+                    // TODO: replace path keys with delta(axis, filter) for predictable sizing; then, remove typechecking on self.path
                     if (!self.keys.has(key)) self.keys.set(key, Space(self.root, self, [...target.path, key]));
                     target = self.keys.get(key);
                 } else {
@@ -34,7 +35,16 @@ export function Space(root=null, parent=null, base=[], prototype=null) {
         parent,
         unscope(...path) {
             // TODO: throw err if path mismatch
-            return self.parent;
+            let target = self;
+            for (let key of path) {
+                if (typeof(key) == 'string') {
+                    if (target.path[target.path.length - 1] != key) throw `tried to unscope ${key} at ${target.path[target.path.length - 1]}`;
+                    target = target.parent;
+                } else {
+                    // TODO: handle filters
+                }
+            }
+            return target;
         },
         supersets() {
             let supersets = [self.root];
@@ -52,30 +62,48 @@ export function Space(root=null, parent=null, base=[], prototype=null) {
             return supersets;
         },
         subsets() {
-            let inverse = self.root.inverse;
-            for (let key of self.path.reverse()) {
-                if (typeof(key) == 'string') {
-                    inverse = inverse.keys.get(key);
-                } else {
-                    // TODO: handle filters
-                }
-            }
             let agg;
             return (agg = inv => [
                 ...inv.spaces,
                 ...Array.from(inv.keys.values())
                     .map(agg)
                     .reduce((flat, spaces) => [...flat, ...spaces], [])
-            ])(inverse);
+            ])(self.inverse);
         },
+        contains(space) {
+            for (let i=0; i<self.path.length; i++) {
+                let key = self.path[self.path.length - i];
+                let subKey = space.path[space.path.length - i];
+                if (typeof(key) == 'string') {
+                    if (key != subKey) return false;
+                } else {
+                    // TODO: handle filters
+                }
+            }
+            return true;
+        },
+        within: space => space.contains(self),
+        instance: () => Instance(self),
         egress: [],
         ingress: [],
         vector(vector) {
             for (let [key, space] of Object.entries(vector.base)) space.egress.push({ vector, key });
             for (let [key, space] of Object.entries(vector.tip)) space.ingress.push({ vector, key });
         },
-        prototype,
-        instance: () => Instance(self),
+        edge: [],  // TODO: build on this as you construct the routing table
+        // NOTE: the below constructs both directions (walk forward and back) of the routing table.
+        // NOTE: lookup is gonna be much more complicated with multiple entities, because entity roles will be a decisive part of the route.
+        //  (when routing, possibly check chosen path before performing lookup, so that recalculation is only done when necessary?)
+        from: {},  // TODO: figure out lookup structure of routing table
+        towards: {},  // TODO: figure out lookup structure of routing table
+        step_forward() {},
+        step_back() {},
+        next_hop(target) {
+            // TODO: walk forward with supersets, and walk back with subsets.
+            //  for each visited node, go through "visited edge" of opposite end and exit if visited point fits into edge.
+            //  "visited edge" is essentially all visited nodes (in order of visit), but you can ignore nodes once you visit something after it (since those will always be closer)
+            // TODO: once there is no more target, establish way to determine context name of final handle (probably using the same mechanism as the entity remapper)
+        },
     };
     if (!self.root) {
         self.root = self;
@@ -83,6 +111,7 @@ export function Space(root=null, parent=null, base=[], prototype=null) {
             keys: new Map(),
             spaces: []
         };
+        self.edge.push(self);
     }
     return self;
 }
@@ -92,9 +121,6 @@ export function Instance (space) {
         space,
         assigned: false,
         value: null,
-        // TODO: probably add a scoping function that says "a scoped entity of this same instance".
-        //  (may need some kind of entity identifier)
-        //  (or, always pass inputs to outputs, and only mutate during transform)
         assign(value) {
             self.value = value;
             self.assigned = true;
@@ -102,18 +128,16 @@ export function Instance (space) {
         scope: (...path) => Instance(space.scope(...path)),
         resolve(handler) {
             // handler("<TBD>");
-            console.log("-- supersets --");
-            for (let ss of self.space.root.supersets()) console.log(ss.path);
-            console.log("-- subsets --");
-            let sss = self.space.subsets();
-            for (let ss of sss) {
-                console.log(ss.path, sss.indexOf(ss));
+            let state = self.space.root;
+            let depth = 0;
+            while (1) {
+                let hop = state.next_hop(self.space);
+                if (!hop) break;
+                depth++;
             }
-            // TODO: walk forward with supersets, and walk back with subsets.
-            //  for each visited node, go through "visited edge" of opposite end and exit if visited point fits into edge.
-            //  "visited edge" is essentially all visited nodes (in order of visit), but you can ignore nodes once you visit something after it (since those will always be closer)
+            console.log("Routing depth:", depth);
         },
-        bind(handler) {},
+        // bind(handler) {},  // live resolver (waiting for resolve() functionality and subscriber-based implementation of rest of logic)
     };
     return self;
 }
