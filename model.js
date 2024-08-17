@@ -1,4 +1,4 @@
-export default function Space(root=null, parent=null, base=[], prototype=null) {
+export function Space(root=null, parent=null, base=[], prototype=null) {
     const self = {
         root,
         path: base,
@@ -14,19 +14,21 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
                     // TODO: handle filters
                 }
             }
-            let inverse = self.root.inverse;
-            for (let key of target.path.reverse()) {
-                if (typeof(key) == 'string') {
-                    if (!inverse.keys.has(key)) inverse.keys.set(key, {
-                        keys: new Map(),
-                        spaces: []
-                    });
-                    inverse = inverse.keys.get(key);
-                } else {
-                    // TODO: handle filters
+            if (!target.inverse) {
+                target.inverse = self.root.inverse;
+                for (let key of target.path.reverse()) {
+                    if (typeof(key) == 'string') {
+                        if (!target.inverse.keys.has(key)) target.inverse.keys.set(key, {
+                            keys: new Map(),
+                            spaces: []
+                        });
+                        target.inverse = target.inverse.keys.get(key);
+                    } else {
+                        // TODO: handle filters
+                    }
                 }
+                if (!target.inverse.spaces.includes(target)) target.inverse.spaces.push(target);
             }
-            if (!inverse.spaces.includes(target)) inverse.spaces.push(target);
             return target;
         },
         parent,
@@ -53,7 +55,6 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
             let inverse = self.root.inverse;
             for (let key of self.path.reverse()) {
                 if (typeof(key) == 'string') {
-                    console.log("GET", key);
                     inverse = inverse.keys.get(key);
                 } else {
                     // TODO: handle filters
@@ -74,19 +75,37 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
             for (let [key, space] of Object.entries(vector.tip)) space.ingress.push({ vector, key });
         },
         prototype,
-        instance: () => Space(self.root, self.parent, self.path, self),
+        instance: () => Instance(self),
+    };
+    if (!self.root) {
+        self.root = self;
+        self.inverse = {
+            keys: new Map(),
+            spaces: []
+        };
+    }
+    return self;
+}
+
+export function Instance (space) {
+    const self = {
+        space,
         assigned: false,
         value: null,
+        // TODO: probably add a scoping function that says "a scoped entity of this same instance".
+        //  (may need some kind of entity identifier)
+        //  (or, always pass inputs to outputs, and only mutate during transform)
         assign(value) {
             self.value = value;
             self.assigned = true;
         },
+        scope: (...path) => Instance(space.scope(...path)),
         resolve(handler) {
             // handler("<TBD>");
             console.log("-- supersets --");
-            for (let ss of self.root.supersets()) console.log(ss.path);
+            for (let ss of self.space.root.supersets()) console.log(ss.path);
             console.log("-- subsets --");
-            let sss = self.subsets();
+            let sss = self.space.subsets();
             for (let ss of sss) {
                 console.log(ss.path, sss.indexOf(ss));
             }
@@ -96,12 +115,5 @@ export default function Space(root=null, parent=null, base=[], prototype=null) {
         },
         bind(handler) {},
     };
-    if (!self.root) {
-        self.root = self;
-        self.inverse = {
-            keys: new Map(),
-            spaces: []
-        };
-    }
     return self;
 }

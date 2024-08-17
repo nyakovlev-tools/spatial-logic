@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import Space from './model';
+import { Space, Instance } from './model';
 
 test('basic vector', () => {
 
