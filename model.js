@@ -90,18 +90,19 @@ export function Space(root=null, parent=null, base=[]) {
             for (let [key, space] of Object.entries(vector.base)) space.egress.push({ vector, key });
             for (let [key, space] of Object.entries(vector.tip)) space.ingress.push({ vector, key });
         },
-        edge: [],  // TODO: build on this as you construct the routing table
-        // NOTE: the below constructs both directions (walk forward and back) of the routing table.
-        // NOTE: lookup is gonna be much more complicated with multiple entities, because entity roles will be a decisive part of the route.
-        //  (when routing, possibly check chosen path before performing lookup, so that recalculation is only done when necessary?)
-        from: Table(),
-        towards: Table(),
-        visited: Table(),
-        periphery: [],  // A list of visited nodes - by appending upon visit, this list will be sorted by closeness. It is used for initial intersection lookup. 
-        step_forward() {},
-        step_back() {},
+        from: Router(s => {
+            s.supersets.map(ss => ss.egress.map(egress => {
+                // TODO: support multiple keys from different roots - and add new permutations as you go.
+                let outputs = egress.vector.forward({[egress.key]: self});
+            }))
+        }),
+        towards: Router(s => {
+            s.subsets.map(ss => ss.ingress.map(ingress => {
+                // TODO: support multiple keys from different roots - and add new permutations as you go.
+                let deps = ingress.vector.bak({[ingress.key]: self});
+            }))
+        }),
         next_hop(target) {
-            // TODO: walk forward with supersets, and walk back with subsets.
             //  for each visited node, go through "visited edge" of opposite end and exit if visited point fits into edge.
             //  "visited edge" is essentially all visited nodes (in order of visit), but you can ignore nodes once you visit something after it (since those will always be closer)
             // TODO: once there is no more target, establish way to determine context name of final handle (probably using the same mechanism as the entity remapper)
@@ -113,21 +114,78 @@ export function Space(root=null, parent=null, base=[]) {
             keys: new Map(),
             spaces: []
         };
-        self.edge.push(self);
     }
     return self;
 }
 
-// NOTE: table objects will be recursive and generated as needed
-// NOTE: table will be somewhat duplicate logic (particularly with key/path handling), where Space kind of extends Table; consider consolidating.
-// NOTE: the same applies to Space.inverse - except inverse is able to have multiple entries. When refactoring this code, consider focusing on consolidating all that logic.
-function Table() {
+function Table(create, assign, each) {
     const self = {
-        space: null,
         keys: new Map(),
-        lookup(path, create) {
+        assign,
+        lookup(path, active) {
+            let target = self;
+            while (path.length) {
+                let key = path[0];
+                // TODO: handle filters
+                if (!target.keys.has(key)) {
+                    if (!active) return;
+                    target.keys.set(key, create(self, key));
+                }
+                target = target.keys.get(key);
+                path = path.slice(1)
+            }
         },
-        insert(path, space) {},
+        insert(path, value) {
+            assign(self.lookup(path), value);
+        },
+        forEach(f) {
+            each(self, f);
+            for (let subEntry of self.keys.values()) subEntry.forEach(f);
+        }
+    };
+    if (!create) create = (entry, key) => Table(create, assign);
+    if (!assign) assign = (entry, value) => {
+        entry.value = value;
+        entry.assigned = true;
+    };
+    if (!each) each = (entry, f) => entry.assigned && f(entry.value);
+    return self;
+}
+
+function Router(expand) {
+    const self = {
+        edge: [],
+        pending: Table(),
+        cost: Table(),
+        visited: Table(),
+        periphery: [],  // A list of visited nodes - by appending upon visit, this list will be sorted by closeness. It is used for initial intersection lookup. 
+        step() {
+            // let nextEdge = [];
+            // let nextSpace;
+            // let nextCost;
+            // self.pending.forEach(s => {
+            //     let c = self.cost.lookup(s.path);
+            //     if (!nextSpace || c < nextCost) {
+            //         nextSpace = s;
+            //         nextCost = c;
+            //     }
+            // });
+            // // let {space, distance} = self.edge.reduce((h1, h2) => h1.distance < h2.distance ? h1 : h2);
+            // for (let s of self.edge) {  // TODO: replace this with picking the closest next edge, tehn adding it to periphery and whatnot
+            //     let supersets = self.supersets();
+            //     if (!supersets.length) {
+            //         nextEdge.push(s);
+            //         continue;
+            //     }
+            //     for (let ss of supersets) {
+            //         for (let egress of ss.egress) {
+            //             // TODO: support multiple keys from different roots - and add new permutations as you go.
+            //             let outputs = egress.vector.forward({[egress.key]: self});
+            //             console.log(outputs[0].o.path);
+            //         }
+            //     }
+            // }
+        },
     };
     return self;
 }
@@ -146,11 +204,13 @@ export function Instance (space) {
             // handler("<TBD>");
             let state = self.space.root;
             let depth = 0;
-            while (1) {
-                let hop = state.next_hop(self.space);
-                if (!hop) break;
-                depth++;
-            }
+            state.next_hop();
+            // while (1) {
+            //     let hop = state.next_hop(self.space);
+            //     if (!hop) break;
+            //     // TODO: perform hop
+            //     depth++;
+            // }
             console.log("Routing depth:", depth);
         },
         // bind(handler) {},  // live resolver (waiting for resolve() functionality and subscriber-based implementation of rest of logic)

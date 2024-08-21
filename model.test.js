@@ -8,11 +8,11 @@ test('basic vector', () => {
         _.vector({
             base: {i: _},
             tip: {o: _.scope('half')},
-            forward: ({i}) => [{o: i.region.scope('half')}],
-            back: ({o}) => [{i: o.region.unscope('half')}],
+            forward: ({i}) => [{o: i.scope('half')}],
+            back: ({o}) => [{i: o.unscope('half')}],
             apply: ({i, o}) => o.assign({
                 value: i.value / 2,
-                region: i.region.scope('half'),
+                region: i.scope('half'),
             }),
         });
     }
