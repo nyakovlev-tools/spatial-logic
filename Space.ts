@@ -3,29 +3,51 @@ import Vector, { Flow, Hop } from "./Vector";
 import Router from "./Router";
 import Instance from "./Instance";
 
+class EffectRouter extends Router {
+    space: Space;
+
+    constructor(space: Space) {
+        super();
+        this.space = space;
+    }
+
+    expand(space: Space): void {
+        space.supersets().map(ss => ss.egress.map(egress => {
+            // TODO: support multiple keys from different roots - and add new permutations as you go.
+            let outputs = egress.vector.forward({[egress.key]: this.space});
+        }));
+    }
+}
+
+class DependencyRouter extends Router {
+    space: Space;
+
+    constructor(space: Space) {
+        super();
+        this.space = space;
+    }
+
+    expand(space: Space): void {
+        space.subsets().map(ss => ss.ingress.map(ingress => {
+            // TODO: support multiple keys from different roots - and add new permutations as you go.
+            let deps = ingress.vector.back({[ingress.key]: this.space});
+        }));
+    }
+}
+
 export default class Space {
     tree?: Tree<Space>
     ingress: Array<Flow>
     egress: Array<Flow>
     inverse?: Tree<Array<Space>>
-    from: Router
-    towards: Router
+    from: EffectRouter
+    towards: DependencyRouter
 
     constructor(props?: { tree?: Tree<Space> }) {
         this.ingress = [];
         this.egress = [];
-        this.from = new Router(s => {
-            s.supersets().map(ss => ss.egress.map(egress => {
-                // TODO: support multiple keys from different roots - and add new permutations as you go.
-                let outputs = egress.vector.forward({[egress.key]: this});
-            }))
-        });
-        this.towards = new Router(s => {
-            s.subsets().map(ss => ss.ingress.map(ingress => {
-                // TODO: support multiple keys from different roots - and add new permutations as you go.
-                let deps = ingress.vector.back({[ingress.key]: this});
-            }))
-        });
+        this.from = new EffectRouter(this);
+        this.towards = new DependencyRouter(this);
         this.tree = props?.tree;
         if (!props?.tree) {
             this.tree = new Tree();

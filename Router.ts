@@ -5,22 +5,22 @@ export interface Expand {
     (space: Space): any
 }
 
-export default class Router {
+export default abstract class Router {
     edge: Array<Space>
     pending: Tree<Space>
     visited: Tree<Space>
     cost: Tree<number>
     periphery: Array<Space>
-    expand: Expand
+    abstract expand(space: Space): void;
 
-    constructor(expand: Expand) {
+    constructor() {
         this.edge = [];  // TODO: replace this array with a Tree - then, provide tree functions to do indexed edge detection
         this.pending = new Tree();
         this.cost = new Tree();
         this.visited = new Tree();
         this.periphery = [];
-        this.expand = expand;
     }
+
 
     advertise(space: Space, cost: number) {
         let path = space.tree!.path;
