@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
-import { Space, Instance } from './model';
+import { Space, ISpace } from './model';
 
 test('basic vector', () => {
 
     // Libraries will essentially export a 'define' function like the one below, so that control (and external context) can be inverted on the provided space.
-    function define(_) {
+    function define(_: ISpace) {
         _.vector({
             base: {i: _},
             tip: {o: _.scope('half')},
