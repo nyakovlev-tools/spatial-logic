@@ -1,7 +1,7 @@
 export type Path = Array<string>
 
 export default class Tree<T> {
-    root?: Tree<T>
+    root: Tree<T>
     parent?: Tree<T>
     path: Path
     keys: Map<string, Tree<T>>
@@ -22,6 +22,12 @@ export default class Tree<T> {
     assign(value: T) {
         this.value = value;
         this.assigned = true;
+    }
+
+    clear() {
+        this.value = undefined;
+        this.assigned = false;
+        if (!this.keys.size) this.parent!.keys.delete(this.path.slice(-1)[0]);
     }
 
     map<MT>(f: (value: T) => MT): Array<MT> {
@@ -61,7 +67,20 @@ export default class Tree<T> {
         return target;
     }
 
-    pop() {
-        return this.parent!.keys.delete(this.path.slice(-1)[0])
+    contains(tree: Tree<T>) {
+        for (let i=0; i<this.path.length; i++) {
+            let key = this.path[this.path.length - i];
+            let subKey = tree.path[tree.path.length - i];
+            if (typeof(key) == 'string') {
+                if (key != subKey) return false;
+            } else {
+                // TODO: handle filters
+            }
+        }
+        return true;
+    }
+
+    within(tree: Tree<T>) {
+        return tree.contains(this);
     }
 }

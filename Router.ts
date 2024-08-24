@@ -14,16 +14,15 @@ export default abstract class Router {
     abstract expand(space: Space): void;
 
     constructor() {
-        this.edge = [];  // TODO: replace this array with a Tree - then, provide tree functions to do indexed edge detection
+        this.edge = [];  // TODO: replace this array with a Tree - then, use this to provide a reduced form of periphery detection (incremental updates only require incremental detection)
         this.pending = new Tree();
         this.cost = new Tree();
         this.visited = new Tree();
-        this.periphery = [];
+        this.periphery = [];  // TODO: replace this with a Tree, possibly of periphery lists - then, use it to look up closest intersections with a new space.
     }
 
-
     advertise(space: Space, cost: number) {
-        let path = space.tree!.path;
+        let path = space.tree.path;
         let costEntry = this.cost.scope(path, true);
         costEntry!.value = costEntry?.value ? Math.min(costEntry.value, cost) : cost;
         if (!this.pending.scope(path) && !this.visited.scope(path)) {
@@ -36,7 +35,8 @@ export default abstract class Router {
     }
 
     visit(space: Space) {
-        let cost = this.cost.scope(space.tree!.path)!.value!;
+        this.visited.scope(space.tree.path, true)!.assign(space);
+        let cost = this.cost.scope(space.tree.path)!.value!;
         // let nextEdge = [];
         // let nextSpace;
         // let nextCost;
@@ -65,9 +65,11 @@ export default abstract class Router {
     }
 
     step() {
-        let pending = this.pending.map<Space>(f => f).sort((a, b) => this.cost.scope(a.tree!.path)!.value! - this.cost.scope(b.tree!.path)!.value!);
+        let pending = this.pending.map<Space>(f => f).sort((a, b) => this.cost.scope(a.tree.path)!.value! - this.cost.scope(b.tree.path)!.value!);
         if (!pending.length) return;
-        this.visit(pending[0]);
+        let next = pending[0];
+        this.pending.scope(next.tree.path)!.clear();
+        this.visit(next);
     }
 
     intersects(space: Space) {}

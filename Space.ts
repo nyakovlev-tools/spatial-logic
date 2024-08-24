@@ -1,7 +1,7 @@
 import Tree, { Path } from "./Tree";
 import Vector, { Flow, Hop } from "./Vector";
 import Router from "./Router";
-import Instance from "./Instance";
+import State from "./State";
 
 class EffectRouter extends Router {
     space: Space;
@@ -36,7 +36,7 @@ class DependencyRouter extends Router {
 }
 
 export default class Space {
-    tree?: Tree<Space>
+    tree: Tree<Space>
     ingress: Array<Flow>
     egress: Array<Flow>
     inverse?: Tree<Array<Space>>
@@ -48,25 +48,26 @@ export default class Space {
         this.egress = [];
         this.from = new EffectRouter(this);
         this.towards = new DependencyRouter(this);
-        this.tree = props?.tree;
         if (!props?.tree) {
             this.tree = new Tree();
             this.tree.assign(this);
             this.inverse = new Tree();
             this.inverse.assign([this]);
+        } else {
+            this.tree = props.tree;
         }
     }
 
     scope(...path: Path) {
-        let tree = this.tree!.scope(path, true);
-        let space = tree!.value;
+        let tree = this.tree.scope(path, true)!;
+        let space = tree.value;
         if (!space) {
             space = new Space({ tree });
-            tree!.value = space;
+            tree.value = space;
         }
         if (!space.inverse) {
-            space.inverse = this.tree!.root!.value!.inverse;
-            let inverse = space.inverse!.scope(tree!.path, true);
+            space.inverse = this.tree.root.value!.inverse;
+            let inverse = space.inverse!.scope(tree.path, true);
             if (!inverse!.value) inverse!.value = [];
             inverse!.value.push(space);
         }
@@ -74,17 +75,17 @@ export default class Space {
     }
 
     unscope(...path: Path) {
-        return this.tree?.unscope(path).value!;
+        return this.tree.unscope(path).value!;
     }
 
     supersets() {
-        let root = this.tree!.root!.value!;
+        let root = this.tree.root.value!;
         let supersets: Array<Space> = [root];
-        for (let key of this.tree!.path) {
+        for (let key of this.tree.path) {
             if (typeof(key) == 'string') {
                 supersets = supersets
-                    .filter(ss => ss.tree!.keys.has(key))
-                    .map(ss => ss.tree!.keys.get(key)?.value)
+                    .filter(ss => ss.tree.keys.has(key))
+                    .map(ss => ss.tree.keys.get(key)?.value)
                     .concat(root)
                     .filter((v, i, a) => a.indexOf(v) == i)
                     .filter(v => v != undefined);
@@ -105,25 +106,8 @@ export default class Space {
         return this.inverse ? agg(this.inverse) : [];
     }
 
-    contains(space: Space) {
-        for (let i=0; i<this.tree!.path.length; i++) {
-            let key = this.tree!.path[this.tree!.path.length - i];
-            let subKey = space.tree!.path[space.tree!.path.length - i];
-            if (typeof(key) == 'string') {
-                if (key != subKey) return false;
-            } else {
-                // TODO: handle filters
-            }
-        }
-        return true;
-    }
-
-    within(space: Space) {
-        return space.contains(this)
-    }
-
-    instance() {
-        return new Instance(this)
+    state<T = any>() {
+        return new State<T>(this)
     }
 
     vector(vector: Vector) {

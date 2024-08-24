@@ -1,5 +1,5 @@
 import Space from "./Space"
-import Instance from "./Instance"
+import State from "./State"
 
 export type Flow = {
     key: string
@@ -13,5 +13,5 @@ export default interface Vector {
     tip: {[key: string]: Space}
     forward(props: {[key: string]: Space}): Array<{[key: string]: Space}>
     back(props: {[key: string]: Space}): Array<{[key: string]: Space}>
-    apply(props: {[key: string]: Instance}): void
+    apply(props: {[key: string]: State}): void
 }
