@@ -1,11 +1,11 @@
-import Space from "./Space"
-import Tree from "./Tree"
+import { Space } from "./Space";
+import { Tree } from "./Tree";
 
 export interface Expand {
     (space: Space): any
 }
 
-export default abstract class Router {
+export abstract class Router {
     edge: Array<Space>
     pending: Tree<Space>
     visited: Tree<Space>
@@ -24,19 +24,21 @@ export default abstract class Router {
     advertise(space: Space, cost: number) {
         let path = space.tree.path;
         let costEntry = this.cost.scope(path, true);
-        costEntry!.value = costEntry?.value ? Math.min(costEntry.value, cost) : cost;
-        if (!this.pending.scope(path) && !this.visited.scope(path)) {
-            this.pending.scope(path, true)!.value = space;
+        costEntry!.assign(costEntry?.current() ? Math.min(costEntry.current()!, cost) : cost);
+        let pending = this.pending.scope(path, true);
+        if (!pending!.assigned && !this.visited.scope(path)?.assigned) {
+            pending!.assign(space);
         }
     }
 
     solved() {
-        return this.pending.map(f => f).length > 0;
+        console.log("Check solved:", this.pending.size, this.pending.map(f => f).length);
+        return this.pending.map(f => f).length == 0;
     }
 
     visit(space: Space) {
         this.visited.scope(space.tree.path, true)!.assign(space);
-        let cost = this.cost.scope(space.tree.path)!.value!;
+        let cost = this.cost.scope(space.tree.path)!.current()!;
         // let nextEdge = [];
         // let nextSpace;
         // let nextCost;
@@ -65,7 +67,7 @@ export default abstract class Router {
     }
 
     step() {
-        let pending = this.pending.map<Space>(f => f).sort((a, b) => this.cost.scope(a.tree.path)!.value! - this.cost.scope(b.tree.path)!.value!);
+        let pending = this.pending.map<Space>(f => f).sort((a, b) => this.cost.scope(a.tree.path)!.current()! - this.cost.scope(b.tree.path)!.current()!);
         if (!pending.length) return;
         let next = pending[0];
         this.pending.scope(next.tree.path)!.clear();

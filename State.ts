@@ -1,28 +1,49 @@
-import { Path } from "./Tree"
-import Space from "./Space"
+import { Tree, Path } from "./Tree";
+import { Space } from "./Space";
 
-export default class State<T = any> {
-    space: Space
+// TODO: consider creating Instance within State, to delineate between two separate entities and two states of the same entity.
+
+export class State {
     assigned?: boolean
-    value?: T
+    tree: Tree<Array<any>>
 
-    constructor(space: Space) {
-        this.space = space;
+    constructor() {
+        this.tree = new Tree();
     }
 
-    assign(value: T) {
-        this.value = value;
-        this.assigned = true;
+    assign(path: Path, value: any) {
+        let tree = this.tree.scope(path, true)!;
+        let values = tree.current();
+        if (!values) {
+            values = [];
+            tree.assign(values);
+        }
+        values.push();
     }
 
-    scope<IT = any>(...path: Path) {
-        return new State<IT>(this.space.scope(...path));
-    }
+    // scope<IT = any>(...path: Path) {
+    //     return new State<IT>(this.space.scope(...path));
+    // }
     
-    resolve(): T {
+    resolve(space: Space) {
         // TODO: come up with some representation of state to map values between vectors.
         // Originally was planning to map keys - but this should only be done at vector invocation - because of space overlap between instances, instances will have to be called out by reference.
-        if (this.assigned) return this.value!;
+        // let start = this.space.tree.root.value!;
+
+        let base = space.tree.root.current()!;
+        let depth;
+        for (depth=0; depth<10; depth++) {  // TODO: consider setting max routing depth
+            console.log("base:", base.from.pending.size, "tip:", space.towards.pending.size);
+            let a = base.from.solved();
+            let b = space.towards.solved();
+            if (a && b) break;
+            // if (base.from.solved() && space.towards.solved()) break;
+            base.from.step();
+            space.towards.step();
+        }
+        console.log("Routing depth:", depth);
+        // TODO: somehow pull up the starting state of the system as a valid reference for this
+        //  (it doesn't need to be assigned to route; it can be assumed that the user needs to provide starting values)
         throw 'No solution found';
 
         // // f("<TBD>");

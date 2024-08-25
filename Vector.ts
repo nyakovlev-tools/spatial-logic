@@ -1,5 +1,5 @@
-import Space from "./Space"
-import State from "./State"
+import { Space } from "./Space";
+import { State } from "./State";
 
 export type Flow = {
     key: string
@@ -8,7 +8,7 @@ export type Flow = {
 
 export type Hop = {}
 
-export default interface Vector {
+export interface Vector {
     base: {[key: string]: Space}
     tip: {[key: string]: Space}
     forward(props: {[key: string]: Space}): Array<{[key: string]: Space}>

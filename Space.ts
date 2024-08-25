@@ -1,7 +1,7 @@
-import Tree, { Path } from "./Tree";
-import Vector, { Flow, Hop } from "./Vector";
-import Router from "./Router";
-import State from "./State";
+import { Tree,  Path } from "./Tree";
+import { Vector, Flow, Hop } from "./Vector";
+import { Router } from "./Router";
+import { State } from "./State";
 
 class EffectRouter extends Router {
     space: Space;
@@ -35,7 +35,7 @@ class DependencyRouter extends Router {
     }
 }
 
-export default class Space {
+export class Space {
     tree: Tree<Space>
     ingress: Array<Flow>
     egress: Array<Flow>
@@ -56,36 +56,38 @@ export default class Space {
         } else {
             this.tree = props.tree;
         }
+        this.from.advertise(this, 0);
+        this.towards.advertise(this, 0);
     }
 
     scope(...path: Path) {
         let tree = this.tree.scope(path, true)!;
-        let space = tree.value;
+        let space = tree.current();
         if (!space) {
             space = new Space({ tree });
-            tree.value = space;
+            tree.assign(space);
         }
         if (!space.inverse) {
-            space.inverse = this.tree.root.value!.inverse;
+            space.inverse = this.tree.root.current()!.inverse;
             let inverse = space.inverse!.scope(tree.path, true);
-            if (!inverse!.value) inverse!.value = [];
-            inverse!.value.push(space);
+            if (!inverse!.current()) inverse!.assign([]);
+            inverse!.current()!.push(space);
         }
         return space;
     }
 
     unscope(...path: Path) {
-        return this.tree.unscope(path).value!;
+        return this.tree.unscope(path).current()!;
     }
 
     supersets() {
-        let root = this.tree.root.value!;
+        let root = this.tree.root.current()!;
         let supersets: Array<Space> = [root];
         for (let key of this.tree.path) {
             if (typeof(key) == 'string') {
                 supersets = supersets
                     .filter(ss => ss.tree.keys.has(key))
-                    .map(ss => ss.tree.keys.get(key)?.value)
+                    .map(ss => ss.tree.keys.get(key)?.current())
                     .concat(root)
                     .filter((v, i, a) => a.indexOf(v) == i)
                     .filter(v => v != undefined);
@@ -98,16 +100,12 @@ export default class Space {
 
     subsets() {
         let agg: (inv: Tree<Array<Space>>) => Array<Space> = inv => [
-            ...(inv.value || []),
+            ...(inv.current() || []),
             ...Array.from(inv.keys.values())
                 .map(agg)
                 .reduce((flat, spaces) => [...flat, ...spaces], [])
         ];
         return this.inverse ? agg(this.inverse) : [];
-    }
-
-    state<T = any>() {
-        return new State<T>(this)
     }
 
     vector(vector: Vector) {

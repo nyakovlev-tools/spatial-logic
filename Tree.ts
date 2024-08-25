@@ -1,33 +1,53 @@
 export type Path = Array<string>
 
-export default class Tree<T> {
+export class Tree<T> {
     root: Tree<T>
     parent?: Tree<T>
     path: Path
     keys: Map<string, Tree<T>>
-    value?: T
+    private value?: T
     assigned?: boolean
+    size: number
 
     constructor(props?: { parent?: Tree<T>, key?: string }) {
         this.root = props?.parent ? props.parent.root : this;
         this.parent = props?.parent;
         this.path = props?.parent ? [...props.parent.path, props.key!] : [];
         this.keys = new Map();
+        this.size = 0;
     }
 
     create(key: string) {
         return new Tree({ parent: this, key });
     }
 
+    current() {
+        if (this.assigned) return this.value!;
+    }
+
     assign(value: T) {
+        if (!this.assigned) {
+            let tree: Tree<T> | undefined = this;
+            while (tree) {
+                tree.size++;
+                tree = tree.parent;
+            }
+        }
         this.value = value;
         this.assigned = true;
     }
 
     clear() {
+        if (this.assigned) {
+            let tree: Tree<T> | undefined = this;
+            while (tree) {
+                tree.size--;
+                tree = tree.parent;
+            }
+        }
         this.value = undefined;
         this.assigned = false;
-        if (!this.keys.size) this.parent!.keys.delete(this.path.slice(-1)[0]);
+        if (!this.keys.size) this.parent?.keys.delete(this.path.slice(-1)[0]);
     }
 
     map<MT>(f: (value: T) => MT): Array<MT> {
