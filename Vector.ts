@@ -6,8 +6,6 @@ export type Flow = {
     vector: Vector
 }
 
-export type Hop = {}
-
 export interface Vector {
     base: {[key: string]: Space}
     tip: {[key: string]: Space}

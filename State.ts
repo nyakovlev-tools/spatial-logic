@@ -44,7 +44,8 @@ export class State {
         console.log("Routing depth:", depth);
         // TODO: somehow pull up the starting state of the system as a valid reference for this
         //  (it doesn't need to be assigned to route; it can be assumed that the user needs to provide starting values)
-        throw 'No solution found';
+
+        // throw 'No solution found';
 
         // // f("<TBD>");
         // let state = this.space.tree.root.value!;

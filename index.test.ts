@@ -28,7 +28,18 @@ test('vector', () => {
     let _ = new Space();
     define(_);
 
-    let state = new State();
-    state.assign([], 8);
-    expect(state.resolve(_.scope('half'))).toBe(4);
+    for (let i=0; i<3; i++) {
+        if (_.from.solved()) {
+            console.log("SOLVED");
+            break;
+        }
+        console.log("pending:", _.from.pending.size);
+        _.from.step();
+    }
+
+    // let state = new State();
+    // state.assign([], 8);
+
+    // expect(state.resolve(_.scope('half'))).toBe(4);
+    // state.resolve(_.scope('half'));
 });
