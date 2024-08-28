@@ -18,20 +18,24 @@ export abstract class Router {
     routes: Tree<Route>
     abstract expand(space: Space): Array<Route>;
 
-    constructor() {
+    constructor(root: Space) {
         this.pending = new Tree();
         this.cost = new Tree();
         this.visited = new Tree();
         this.routes = new Tree();
+
+        this.pending.scope(root.tree.path, true)!.assign(root);
     }
 
-    advertise(space: Space, cost: number) {
-        let path = space.tree.path;
-        let costEntry = this.cost.scope(path, true);
-        costEntry!.assign(costEntry?.current() ? Math.min(costEntry.current()!, cost) : cost);
-        let pending = this.pending.scope(path, true);
-        if (!pending!.assigned && !this.visited.scope(path)?.assigned) {
-            pending!.assign(space);
+    advertise(route: Route, cost: number) {
+        let path = route.dst.space.tree.path;
+        let costEntry = this.cost.scope(path, true)!;
+        if (!costEntry.assigned || costEntry.current()! > cost) {
+            costEntry.assign(cost);
+            this.routes.scope(path, true)?.assign(route);
+            if (!this.visited.scope(path)?.assigned && !this.pending.scope(path)?.assigned) {
+                this.pending.scope(path, true)!.assign(route.dst.space);
+            }
         }
     }
 
@@ -43,15 +47,7 @@ export abstract class Router {
         this.visited.scope(space.tree.path, true)!.assign(space);
         let cost = this.cost.scope(space.tree.path)!.current()! + 1;
         for (let route of this.expand(space)) {
-            let path = route.dst.space.tree.path;
-            let costTree = this.cost.scope(path, true)!;
-            if (!costTree.assigned || costTree.current()! > cost) {
-                costTree.assign(cost);
-                this.routes.scope(path, true)?.assign(route);
-                if (!this.visited.scope(path)?.assigned && !this.pending.scope(path)?.assigned) {
-                    this.pending.scope(path, true)!.assign(route.dst.space);
-                }
-            }
+            this.advertise(route, this.cost.scope(space.tree.path)!.current()! + 1);
         }
     }
 
@@ -63,7 +59,4 @@ export abstract class Router {
         this.visit(next);
     }
 
-    intersects(space: Space) {}
-
-    edges(space: Space) {}
 }

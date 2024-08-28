@@ -7,7 +7,7 @@ class EffectRouter extends Router {
     space: Space;
 
     constructor(space: Space) {
-        super();
+        super(space);
         this.space = space;
     }
 
@@ -40,7 +40,7 @@ class DependencyRouter extends Router {
     space: Space;
 
     constructor(space: Space) {
-        super();
+        super(space);
         this.space = space;
     }
 
@@ -64,8 +64,6 @@ export class Space {
     constructor(props?: { tree?: Tree<Space> }) {
         this.ingress = [];
         this.egress = [];
-        this.from = new EffectRouter(this);
-        this.towards = new DependencyRouter(this);
         if (!props?.tree) {
             this.tree = new Tree();
             this.tree.assign(this);
@@ -74,8 +72,8 @@ export class Space {
         } else {
             this.tree = props.tree;
         }
-        this.from.advertise(this, 0);
-        this.towards.advertise(this, 0);
+        this.from = new EffectRouter(this);
+        this.towards = new DependencyRouter(this);
     }
 
     scope(...path: Path) {
