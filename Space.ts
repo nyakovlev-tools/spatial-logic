@@ -96,34 +96,6 @@ export class Space {
         return this.tree.unscope(path).current()!;
     }
 
-    supersets() {
-        let root = this.tree.root.current()!;
-        let supersets: Array<Space> = [root];
-        for (let key of this.tree.path) {
-            if (typeof(key) == 'string') {
-                supersets = supersets
-                    .filter(ss => ss.tree.keys.has(key))
-                    .map(ss => ss.tree.keys.get(key)?.current())
-                    .concat(root)
-                    .filter((v, i, a) => a.indexOf(v) == i)
-                    .filter(v => v != undefined);
-            } else {
-                // TODO: handle filters
-            }
-        }
-        return supersets;
-    }
-
-    subsets() {
-        let agg: (inv: Tree<Array<Space>>) => Array<Space> = inv => [
-            ...(inv.current() || []),
-            ...Array.from(inv.keys.values())
-                .map(agg)
-                .reduce((flat, spaces) => [...flat, ...spaces], [])
-        ];
-        return this.inverse ? agg(this.inverse) : [];
-    }
-
     vector(vector: Vector) {
         for (let [key, space] of Object.entries(vector.base)) space.egress.push({ vector, key });
         for (let [key, space] of Object.entries(vector.tip)) space.ingress.push({ vector, key });

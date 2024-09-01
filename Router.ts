@@ -45,7 +45,6 @@ export abstract class Router {
 
     visit(space: Space) {
         this.visited.scope(space.tree.path, true)!.assign(space);
-        let cost = this.cost.scope(space.tree.path)!.current()! + 1;
         for (let route of this.expand(space)) {
             this.advertise(route, this.cost.scope(space.tree.path)!.current()! + 1);
         }
