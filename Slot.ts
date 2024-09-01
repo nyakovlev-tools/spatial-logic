@@ -6,9 +6,7 @@ export class Slot<T> {
         this._assigned = false;
     }
 
-    assigned() {
-        return this._assigned;
-    }
+    assigned() { return this._assigned; }
 
     current() {
         if (this._assigned) return this.value!;
