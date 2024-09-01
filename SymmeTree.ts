@@ -2,10 +2,10 @@ import { Path, Tree } from "./Tree";
 import { Slot } from "./Slot";
 
 function getSymmeTree<T>(tree: Tree<SymmeTree<T>> | undefined, active: boolean | undefined) {
-    if (!tree?.assigned() && active) {
-        tree!.assign(new SymmeTree({ tree }));
-    }
     let stree = tree?.current();
+    if (!tree?.assigned() && active) {
+        stree = new SymmeTree({ tree });
+    }
     if (stree && !stree.inverse) {
         let inverse = tree!.root().current()!.inverse!.scope(stree.tree.path(), true)!;
         stree.inverse = inverse;
@@ -28,8 +28,11 @@ export class SymmeTree<T> {
             this.inverse = new Tree();
             this.inverse.assign([this]);
         }
+        this.tree.assign(this);
         this.slot = new Slot();
     }
+
+    path() { return this.tree.path(); }
 
     assign(value: T) {
         // TODO: If adding a size param to SymmeTree, provide similar counting logic to Tree
@@ -51,16 +54,22 @@ export class SymmeTree<T> {
 
     unscope(path: Path) {
         let tree = this.tree.unscope(path);
-        return getSymmeTree<T>(tree, true);
+        return getSymmeTree<T>(tree, true)!;
     }
 
     supersets() {
+        let unpack = (inv: Tree<SymmeTree<T>[]>) =>
+            inverse.current()!
+                .filter(stree => stree.assigned())
+                .map(stree => stree.current()!);
+
         let inverse = this.tree.root().current()!.inverse!;
-        let supersets = inverse?.assigned() ? inverse.current()! : [];
+        let supersets = inverse?.assigned() ? unpack(inverse) : [];
         for (let key of this.tree.path().reverse()) {
             inverse = inverse.scope([key], false)!;
-            if (inverse.assigned()) supersets = [...supersets, ...inverse.current()!];
+            if (inverse.assigned()) supersets = [...supersets, ...unpack(inverse)];
         }
+        return supersets;
     }
 
     subsets(): Array<T> {

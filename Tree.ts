@@ -36,7 +36,7 @@ export class Tree<T> {
     }
 
     assign(value: T) {
-        if (!this.slot.assigned) {
+        if (!this.slot.assigned()) {
             let tree: Tree<T> | undefined = this;
             while (tree) {
                 tree._size++;

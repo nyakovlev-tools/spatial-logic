@@ -33,7 +33,7 @@ test('vector', () => {
             console.log("SOLVED");
             break;
         }
-        console.log("pending:", _.from.pending.size);
+        console.log("pending:", _.from.pending.size());
         _.from.step();
     }
 

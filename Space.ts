@@ -1,7 +1,7 @@
-import { Tree,  Path } from "./Tree";
+import { Path } from "./Tree";
 import { Vector, Flow } from "./Vector";
 import { Route, Router } from "./Router";
-import { State } from "./State";
+import { SymmeTree } from "./SymmeTree";
 
 class EffectRouter extends Router {
     space: Space;
@@ -13,7 +13,7 @@ class EffectRouter extends Router {
 
     expand(space: Space) {
         let routes: Array<Route> = [];
-        for (let ss of space.supersets()) {
+        for (let ss of space.tree.supersets()) {
             for (let egress of ss.egress) {
                 // TODO: support multiple inputs.
                 // - effect cannot proceed without all inputs
@@ -29,10 +29,6 @@ class EffectRouter extends Router {
             }
         }
         return routes;
-        // return space.supersets().map(ss => ss.egress.map(egress =>
-        //     // TODO: support multiple keys from different roots - and add new permutations as you go.
-        //     Object.entries(egress.vector.forward({[egress.key]: this.space})).map(([k, v]) => {key, vector})
-        // )).reduce((agg, outputs) => [...agg, ...outputs], []);
     }
 }
 
@@ -54,57 +50,26 @@ class DependencyRouter extends Router {
 }
 
 export class Space {
-    tree: Tree<Space>
+    tree: SymmeTree<Space>
     ingress: Array<Flow>
     egress: Array<Flow>
-    inverse?: Tree<Array<Space>>
     from: EffectRouter
     towards: DependencyRouter
 
-    constructor(props?: { tree?: Tree<Space> }) {
+    constructor(props?: { tree?: SymmeTree<Space> }) {
+        this.tree = props?.tree || new SymmeTree();
         this.ingress = [];
         this.egress = [];
-        if (!props?.tree) {
-            this.tree = new Tree();
-            this.tree.assign(this);
-            this.inverse = new Tree();
-            this.inverse.assign([this]);
-        } else {
-            this.tree = props.tree;
-        }
         this.from = new EffectRouter(this);
         this.towards = new DependencyRouter(this);
+        this.tree.assign(this);
     }
 
-    scope(...path: Path) {
-        let tree = this.tree.scope(path, true)!;
-        let space = tree.current();
-        if (!space) {
-            space = new Space({ tree });
-            tree.assign(space);
-        }
-        if (!space.inverse) {
-            space.inverse = this.tree.root.current()!.inverse;
-            let inverse = space.inverse!.scope(tree.path, true);
-            if (!inverse!.current()) inverse!.assign([]);
-            inverse!.current()!.push(space);
-        }
-        return space;
-    }
-
-    unscope(...path: Path) {
-        return this.tree.unscope(path).current()!;
-    }
+    scope(...path: Path) { return new Space({ tree: this.tree.scope(path, true)! }); }
+    unscope(...path: Path) { return this.tree.unscope(path).current()!; }
 
     vector(vector: Vector) {
         for (let [key, space] of Object.entries(vector.base)) space.egress.push({ vector, key });
         for (let [key, space] of Object.entries(vector.tip)) space.ingress.push({ vector, key });
     }
-
-    // hop(target: Space) {
-    //     return {};
-    //     //  for each visited node, go through "visited edge" of opposite end and exit if visited point fits into edge.
-    //     //  "visited edge" is essentially all visited nodes (in order of visit), but you can ignore nodes once you visit something after it (since those will always be closer)
-    //     // TODO: once there is no more target, establish way to determine context name of final handle (probably using the same mechanism as the entity remapper)
-    // }
 }
