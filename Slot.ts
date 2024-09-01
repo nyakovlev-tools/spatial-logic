@@ -1,23 +1,27 @@
 export class Slot<T> {
     private value?: T
-    assigned?: boolean
+    private _assigned?: boolean
 
     constructor() {
-        this.assigned = false;
+        this._assigned = false;
+    }
+
+    assigned() {
+        return this._assigned;
     }
 
     current() {
-        if (this.assigned) return this.value!;
+        if (this._assigned) return this.value!;
     }
 
     assign(value: T) {
         this.value = value;
-        this.assigned = true;
+        this._assigned = true;
     }
 
     clear() {
         this.value = undefined;
-        this.assigned = false;
+        this._assigned = false;
     }
 
 }

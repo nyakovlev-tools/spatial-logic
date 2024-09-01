@@ -1,35 +1,39 @@
-import { ITree, Path, Tree } from "./Tree";
+import { Path, Tree } from "./Tree";
+import { Slot } from "./Slot";
 
-export class SymmeTree<T> extends Tree<T> {
-    inverse?: ITree<Array<SymmeTree<T>>>
+export class SymmeTree<T> {
+    tree: Tree<SymmeTree<T>>
+    inverse?: Tree<Array<SymmeTree<T>>>
+    private slot: Slot<T>
 
-    constructor(props?: { parent?: ITree<T>, path?: Path }) {
-        super(props);
-        if (!props?.parent) {
+    constructor(props?: { tree?: Tree<SymmeTree<T>> }) {
+        if (props?.tree) {
+            this.tree = props.tree
+        } else {
+            this.tree = new Tree();
             this.inverse = new Tree();
             this.inverse.assign([this]);
         }
-
-        this.create("")
-    }
-
-    create(key: string) {
-        return new SymmeTree({ parent: this, path: [...this.path, key] });
+        this.slot = new Slot();
     }
 
     scope(path: Path, active?: boolean): SymmeTree<T> | undefined {
-        let tree = <SymmeTree<T> | undefined>super.scope(path, active);
-        if (tree && tree.inverse) {
-            let inverse = (<SymmeTree<T>>this.root).inverse!.scope(tree.path, true);
-            tree.inverse = inverse;
-            if (!inverse!.current()) inverse!.assign([]);
-            inverse!.current()!.push(this);
+        let tree = this.tree.scope(path, active);
+        if (!tree?.assigned() && active) {
+            tree!.assign(new SymmeTree({ tree }));
         }
-        return tree;
+        let stree = tree?.current();
+        if (stree && !stree.inverse) {
+            let inverse = this.tree.root.current()!.inverse!.scope(path, true)!;
+            stree.inverse = inverse;
+            if (!inverse.assigned()) inverse.assign([]);
+            inverse.current()!.push(stree);
+        }
+        return stree;
     }
 
     subsets() {
-        let agg: (inv: ITree<Array<SymmeTree<T>>>) => Array<SymmeTree<T>> = inv => [
+        let agg: (inv: Tree<Array<SymmeTree<T>>>) => Array<SymmeTree<T>> = inv => [
             ...(inv.current() || []),
             ...Array.from(inv.keys.values())
                 .map(agg)
