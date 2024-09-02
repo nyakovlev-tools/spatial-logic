@@ -28,10 +28,14 @@ test('vector', () => {
     let _ = new Space();
     define(_);
 
+    let target = _.scope('half');
+
+    // TODO: migrate this to a routing function (...in Space?) that breaks a located target by returning the route.
     for (let i=0; i<3; i++) {
         if (_.from.solved()) {
             console.log("SOLVED");
             break;
+            // TODO: lookup any paths that contain `target` - sort by lowest cost - if any are found, exit loop early.
         }
         console.log("pending:", _.from.pending.size());
         _.from.step();

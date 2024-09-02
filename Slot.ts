@@ -8,7 +8,7 @@ export class Slot<T> {
 
     assigned() { return this._assigned; }
 
-    current() {
+    current(): T | undefined {
         if (this._assigned) return this.value!;
     }
 
