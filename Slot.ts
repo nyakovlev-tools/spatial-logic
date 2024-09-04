@@ -1,25 +1,19 @@
-export class Slot<T> {
-    private value?: T
-    private _assigned?: boolean
+export type SlotType<T> = {
+    value?: T
+    assigned: boolean
+}
 
-    constructor() {
-        this._assigned = false;
-    }
-
-    assigned() { return this._assigned; }
-
-    current(): T | undefined {
-        if (this._assigned) return this.value!;
-    }
-
-    assign(value: T) {
-        this.value = value;
-        this._assigned = true;
-    }
-
-    clear() {
-        this.value = undefined;
-        this._assigned = false;
-    }
-
+export const Slot = {
+    init<T>(self: {}): SlotType<T> {
+        return {...self, assigned: false};
+    },
+    assign<T>(self: SlotType<T>, value: T) {
+        self.value = value;
+        self.assigned = true;
+    },
+    clear<T>(self: SlotType<T>) {
+        self.value = undefined;
+        self.assigned = false;
+    },
+    // TODO: add functions to read slot value and read slot status, and give them optional callbacks, bindings, teardown calls, etc.
 }

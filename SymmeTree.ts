@@ -1,8 +1,20 @@
-import { Path, Tree } from "./Tree";
-import { Slot } from "./Slot";
-import { SorTree } from "./SorTree";
+import { Tree, TreeType } from "./Tree";
+import { SorTreeType } from "./SorTree";
 
-export class SymmeTree<T> {
+export type SymmeTreeType<T> = TreeType<T> & {
+    inverse?: SorTreeType<SymmeTreeType<T>>
+}
+
+export const SymmeTree = {
+    // init<T>(self: {}, props?: SorTreeProps<T>): SorTreeType<T> { return {
+    //     ...Tree.init<T>(self, props),
+    //     parent: props?.parent,
+    //     compare: wrapCompare<T>(props?.compare),
+    //     downstream: [],
+    // }},
+};
+
+export class CSymmeTree<T> {
     tree: Tree<SymmeTree<T>>
     inverse?: SorTree<SymmeTree<T>>
     private slot: Slot<T>

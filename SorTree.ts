@@ -1,48 +1,82 @@
-import { Slot } from "./Slot"
-import { Path, Tree } from "./Tree"
 
 // NOTE: sorting is currently only useful for the inverse tree, since the origin of overlapping spaces is at the path tip.
 // Thus, a sorted tree object may be bet implemented as a SymmeTree, but the inverted tree is a sorted tree.
 // Perhaps SymmeTree will depend on this type, and this type will just wrap a plain tree?
 
-type CompareFunction<T> = {
-    (a: T, b: T): number
+import { Path, Tree, TreeType, TreeProps } from "./Tree"
+
+export type Comparator<T> = (a: T, b: T) => number
+
+export function binaryInsert<T>(array: T[], insertValue: T, comparator: Comparator<T>) {
+    // From: https://github.com/bhowell2/binary-insert-js/blob/master/index.ts
+
+    if (array.length === 0 || comparator(array[0], insertValue) >= 0) {
+        array.splice(0, 0, insertValue)
+        return array;
+    } else if (array.length > 0 && comparator(array[array.length - 1], insertValue) <= 0) {
+        array.splice(array.length, 0, insertValue);
+        return array;
+    }
+    let left = 0, right = array.length;
+    let leftLast = 0, rightLast = right;
+    while (left < right) {
+        const inPos = Math.floor((right + left) / 2)
+        const compared = comparator(array[inPos], insertValue);
+        if (compared < 0) left = inPos;
+        else if (compared > 0) right = inPos;
+        else {
+            right = inPos;
+            left = inPos;
+        }
+        // nothing has changed, must have found limits. insert between.
+        if (leftLast === left && rightLast === right) break;
+        leftLast = left;
+        rightLast = right;
+    }
+    // use right, because Math.floor is used
+    array.splice(right, 0, insertValue);
+    return array
 }
 
-export class SorTree<T> {
-    tree: Tree<SorTree<T>>
-    private slot: Slot<T>
-    compare?: CompareFunction<T>
-
-    constructor(props?: { compare?: CompareFunction<T>, tree?: Tree<SorTree<T>> }) {
-        this.tree = props?.tree || new Tree();
-        this.tree.assign(this);
-        this.compare = props?.compare;
-        this.slot = new Slot();
-        // TODO: add ranking attributes
-    }
-
-    assign(value: T) {
-        // TODO: for recurse parent until lower cost found
-        this.slot.assign(value);
-    }
-
-    current() {
-        return this.slot.current();
-    }
-
-    assigned() {
-        return this.slot.assigned();
-    }
-
-    scope(path: Path, active?: boolean): SorTree<T> | undefined {
-        return this.tree.scope(path, active)?.current();
-    }
-
-    map<MT>(f: (value: T) => MT): Array<MT> {
-        return this.tree.map(o => o)
-            .filter(stree => stree.assigned())
-            .map(stree => stree.current()!)
-            .map(v => f(v));
-    }
+export type SorTreeProps<T> = TreeProps<T> & {
+    parent?: SorTreeType<T>
+    compare?: Comparator<T>
 }
+
+export type SorTreeType<T> = TreeType<T> & {
+    parent?: SorTreeType<T>
+    compare?: (a: SorTreeType<T>, b: SorTreeType<T>) => number
+    downstream: Array<SorTreeType<T>>
+};
+
+function wrapCompare<T>(compare?: Comparator<T>) {
+    // NOTE: anything in a comparison list will always be assigned
+    if (compare) return (a: SorTreeType<T>, b: SorTreeType<T>) => compare(a.value!, b.value!);
+}
+
+export const SorTree = {
+    init<T>(self: {}, props?: SorTreeProps<T>): SorTreeType<T> { return {
+        ...Tree.init<T>(self, props),
+        parent: props?.parent,
+        compare: wrapCompare<T>(props?.compare),
+        downstream: [],
+    }},
+    assign<T>(self: SorTreeType<T>, value: T) {
+        Tree.assign(self, value);
+        if (!self.compare) return;
+        let tree: SorTreeType<T> | undefined = self;
+        while (tree) {
+            binaryInsert<SorTreeType<T>>(tree.downstream, self, self.compare!);
+            tree = tree.parent;
+        }
+    },
+    clear<T>(self: SorTreeType<T>) {
+        Tree.clear(self);
+        if (!self.compare) return;
+        let tree: SorTreeType<T> | undefined = self;
+        while (tree) {
+            tree.downstream.splice(tree.downstream.indexOf(self), 1);
+            tree = tree.parent;
+        }
+    },
+};
