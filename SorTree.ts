@@ -1,6 +1,18 @@
-import { Tree, TreeType, TreeProps } from "./Tree"
+import { PanTree, PanTreeType, PanTreeProps } from "./PanTree"
 
 export type Comparator<T> = (a: T, b: T) => number
+
+export type SorTreeProps<T> = PanTreeProps<T> & {
+    tree?: SorTreeType<T>
+    compare: Comparator<SorTreeType<T>>
+}
+
+export type SorTreeType<T> = PanTreeType<T> & {
+    root?: SorTreeType<T>
+    parent?: SorTreeType<T>
+    compare: Comparator<SorTreeType<T>>
+    downstream: Array<SorTreeType<T>>
+};
 
 export function binaryInsert<T>(array: T[], insertValue: T, comparator: Comparator<T>) {
     // From: https://github.com/bhowell2/binary-insert-js/blob/master/index.ts
@@ -33,48 +45,32 @@ export function binaryInsert<T>(array: T[], insertValue: T, comparator: Comparat
     return array
 }
 
-export type SorTreeProps<T> = TreeProps<T> & {
-    tree?: SorTreeType<T>
-    compare?: Comparator<T>
-}
-
-export type SorTreeType<T> = TreeType<T> & {
-    root?: SorTreeType<T>
-    parent?: SorTreeType<T>
-    compare?: (a: SorTreeType<T>, b: SorTreeType<T>) => number
-    downstream: Array<SorTreeType<T>>
-};
-
-function wrapCompare<T>(compare?: Comparator<T>) {
-    // NOTE: anything in a comparison list will always be assigned
-    if (compare) return (a: SorTreeType<T>, b: SorTreeType<T>) => compare(a.value!, b.value!);
-}
-
 export const SorTree = {
-    ...Tree,
-    init<T>(self: {}, props?: SorTreeProps<T>): SorTreeType<T> { return {
-        ...Tree.init<T>(self, {init: SorTree.init, ...props}),
-        root: props?.tree?.root,
+    ...PanTree,
+    init<T>(self: {}, props: SorTreeProps<T>): SorTreeType<T> { return {
+        ...PanTree.init<T>(self, {init: SorTree.init, ...props}),
+        root: props!.tree?.root,
         parent: props?.tree,
-        compare: wrapCompare<T>(props?.compare),
+        compare: props!.compare,
         downstream: [],
     }},
     assign<T>(self: SorTreeType<T>, value: T) {
-        Tree.assign(self, value);
-        if (!self.compare) return;
+        SorTree.clear(self);
+        PanTree.assign(self, value);
         let tree: SorTreeType<T> | undefined = self;
         while (tree) {
-            binaryInsert<SorTreeType<T>>(tree.downstream, self, self.compare!);
+            binaryInsert<SorTreeType<T>>(tree.downstream, self, self.compare);
             tree = tree.parent;
         }
     },
     clear<T>(self: SorTreeType<T>) {
-        Tree.clear(self);
-        if (!self.compare) return;
-        let tree: SorTreeType<T> | undefined = self;
-        while (tree) {
-            tree.downstream.splice(tree.downstream.indexOf(self), 1);
-            tree = tree.parent;
+        if (self.assigned) {
+            PanTree.clear(self);
+            let tree: SorTreeType<T> | undefined = self;
+            while (tree) {
+                if (tree.downstream.includes(self)) tree.downstream.splice(tree.downstream.indexOf(self), 1);
+                tree = tree.parent;
+            }
         }
     },
 };

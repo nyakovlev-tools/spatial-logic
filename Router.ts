@@ -1,35 +1,34 @@
-import { Space } from "./Space";
-import { Tree } from "./Tree";
-import { Vector } from "./Vector";
+import { PanTreeType } from "./PanTree";
+import { SorTreeType } from "./SorTree";
+import { SpaceType } from "./Space";
+import { VectorType } from "./Vector";
+
+export type Expander = (space: SpaceType) => Array<Route>
 
 export type Route = {
-    src: {[key: string]: Space}
-    vector: Vector
+    src: {[key: string]: SpaceType}
+    vector: VectorType
     dst: {
         key: string
-        space: Space
+        space: SpaceType
     }
 }
 
-export abstract class Router {
-    pending: Tree<Space>
-    visited: Tree<Space>
-    cost: Tree<number>
-    routes: Tree<Route>
-    abstract expand(space: Space): Array<Route>;
+export type RouterType = {
+    expand: Expander
+    pending: SorTreeType<SpaceType>
+    visited: SorTreeType<SpaceType>
+    cost: PanTreeType<number>
+    routes: SorTreeType<Route>
+};
 
-    constructor(root: Space) {
-        this.pending = new Tree();
-        this.cost = new Tree();
-        this.visited = new Tree();
-        this.routes = new Tree();
-
-        let rootPath = root.tree.path()
-        this.pending.scope(rootPath, true)!.assign(root);
-        this.cost.scope(rootPath, true)!.assign(0);
-    }
-
-    advertise(route: Route, cost: number) {
+export const Router = {
+    init(expand: Expander): RouterType {
+        return {
+            expand,
+        };
+    },
+    advertise(self: RouterType, route: Route, cost: number) {
         let path = route.dst.space.tree.path();
         let costEntry = this.cost.scope(path, true)!;
         if (!costEntry.assigned() || costEntry.current()! > cost) {
@@ -39,20 +38,17 @@ export abstract class Router {
                 this.pending.scope(path, true)!.assign(route.dst.space);
             }
         }
-    }
-
-    solved() {
+    },
+    solved(self: RouterType) {
         return this.pending.map(f => f).length == 0;
-    }
-
-    visit(space: Space) {
+    },
+    visit(self: RouterType, space: Space) {
         this.visited.scope(space.tree.path(), true)!.assign(space);
         for (let route of this.expand(space)) {
             this.advertise(route, this.cost.scope(space.tree.path())!.current()! + 1);
         }
-    }
-
-    step() {
+    },
+    step(self: RouterType) {
         let pending = this.pending.map<Space>(f => f).sort(
             (a, b) => this.cost.scope(a.tree.path())!.current()! - this.cost.scope(b.tree.path())!.current()!
         );
@@ -60,6 +56,5 @@ export abstract class Router {
         let next = pending[0];
         this.pending.scope(next.tree.path())!.clear();
         this.visit(next);
-    }
-
-}
+    },
+};

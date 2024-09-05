@@ -1,21 +1,21 @@
-import { Tree, TreeType, Path } from "./Tree";
-import { SorTree, SorTreeType, SorTreeProps, Comparator } from "./SorTree";
+import { Tree, TreeType, TreeProps } from "./Tree";
+import { SorTree, SorTreeType, Comparator } from "./SorTree";
 
-export type SymmeTreeType<T> = TreeType<T> & {
-    root?: SymmeTreeType<T>
-    parent?: SymmeTreeType<T>
-    inverse: SorTreeType<SymmeTreeType<T>>
+export type SymmeTreeType = TreeType & {
+    root?: SymmeTreeType
+    parent?: SymmeTreeType
+    inverse: SorTreeType<SymmeTreeType>
 }
 
-export type SymmeTreeProps<T> = SorTreeProps<T> & {
-    tree?: SymmeTreeType<T>
-    compare?: Comparator<SymmeTreeType<T>>
+export type SymmeTreeProps = TreeProps & {
+    tree?: SymmeTreeType
+    compare?: Comparator<SorTreeType<SymmeTreeType>>
 }
 
 export const SymmeTree = {
     ...Tree,
-    init<T>(self: {}, props?: SymmeTreeProps<T>): SymmeTreeType<T> {
-        let base: TreeType<T> = Tree.init<T>(self, {init: SymmeTree.init, ...props});
+    init(self: {}, props?: SymmeTreeProps): SymmeTreeType {
+        let base: TreeType = Tree.init(self, {init: SymmeTree.init, ...props});
         let tree = {
             ...base,
             root: props?.tree?.root,
@@ -27,16 +27,19 @@ export const SymmeTree = {
         SorTree.assign(tree.inverse, tree);
         return tree;
     },
-    supersets<T>(self: SymmeTreeType<T>): Array<SymmeTreeType<T>> {
-        let supersets: Array<SymmeTreeType<T>> = [];
-        let tree: SorTreeType<SymmeTreeType<T>> | undefined = self.inverse;
+    supersets(self: SymmeTreeType): Array<SymmeTreeType> {
+        let supersets: Array<SymmeTreeType> = [];
+        let tree: SorTreeType<SymmeTreeType> | undefined = self.inverse;
         while (tree) {
             supersets.push(tree.value!);
             tree = tree.parent;
         }
         return supersets;
     },
-    subsets<T>(self: SymmeTreeType<T>): Array<SymmeTreeType<T>> {
-        return SorTree.map(self.inverse, stree => stree);
+    subsets(self: SymmeTreeType): Array<SymmeTreeType> {
+        return Array.from(self.inverse.keys.values()).reduce(
+            (agg, subTree) => [...agg, ...SymmeTree.subsets(subTree as SymmeTreeType)],
+            self.inverse.assigned ? [self.inverse.value!] : []
+        )
     },
 };

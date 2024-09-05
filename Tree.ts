@@ -1,28 +1,24 @@
-import { Slot, SlotType } from "./Slot"
-
 export type Segment = string;
 export type Path = Array<Segment>;
 
-export type TreeProps<T> = {
-    tree?: TreeType<T>,
+export type TreeProps = {
+    tree?: TreeType,
     key?: Segment,
-    init?: (self: TreeType<T>) => TreeType<T>
+    init?: (self: TreeType) => TreeType
 }
 
-export type TreeType<T> = SlotType<T> & {
-    root?: TreeType<T>
-    parent?: TreeType<T>
+export type TreeType = {
+    root?: TreeType
+    parent?: TreeType
     path: Path
-    keys: Map<string, TreeType<T>>
-    size: number
-    init<T>(self: TreeType<T>, props?: TreeProps<T>): TreeType<T>
+    keys: Map<string, TreeType>
+    init<T>(self: TreeType, props?: TreeProps): TreeType
 }
 
 export const Tree = {
-    ...Slot,
-    init<T>(self: {}, props?: TreeProps<T>): TreeType<T> {
-        let _self: TreeType<T> = {
-            ...Slot.init(self),
+    init(self: {}, props?: TreeProps): TreeType {
+        let _self: TreeType = {
+            ...self,
             root: props?.tree?.root,
             parent: props?.tree,
             path: [
@@ -30,43 +26,15 @@ export const Tree = {
                 ...(props?.key ?? []),
             ],
             keys: new Map(),
-            size: 0,
             init: props?.init || Tree.init,
         };
         if (!_self.root) _self.root = _self;
         return _self;
     },
-    assign<T>(self: TreeType<T>, value: T) {
-        if (!self.assigned) {
-            let tree: TreeType<T> | undefined = self;
-            while (tree) {
-                tree.size++;
-                tree = tree.parent;
-            }
-        }
-        Slot.assign(self, value);
-    },
-    clear<T>(self: TreeType<T>) {
-        if (self.assigned) {
-            let tree: TreeType<T> | undefined = self;
-            while (tree) {
-                tree.size--;
-                tree = tree.parent;
-            }
-        }
-        Slot.clear(self);
-        if (!self.keys.size) self.parent?.keys.delete(self.path.slice(-1)[0]);
-    },
-    create<T>(self: TreeType<T>, key: string): TreeType<T> {
+    create(self: TreeType, key: string): TreeType {
         return self.init(self, { tree: self, key, init: self.init });
     },
-    map<T, MT>(self: TreeType<T>, f: (value: T) => MT): Array<MT> {
-        return Array.from(self.keys.values()).reduce(
-            (agg, subTree) => [...agg, ...Tree.map(subTree, f)],
-            self.assigned ? [f(self.value!)] : []
-        )
-    },
-    scope<T, Self extends TreeType<T> = TreeType<T>>(self: Self, path: Path, active?: boolean) {
+    scope<Self extends TreeType = TreeType>(self: Self, path: Path, active?: boolean) {
         let tree: Self = self;
         while (path.length) {
             let key = path[0];
@@ -82,7 +50,7 @@ export const Tree = {
         }
         return tree;
     },
-    unscope<T, Self extends TreeType<T> = TreeType<T>>(self: Self, path: Path) {
+    unscope<Self extends TreeType = TreeType>(self: Self, path: Path) {
         let target: Self = self;
         for (let key of path) {
             if (typeof(key) == 'string') {
@@ -94,7 +62,7 @@ export const Tree = {
         }
         return target;
     },
-    contains<T>(self: TreeType<T>, tree: TreeType<T>) {
+    contains(self: TreeType, tree: TreeType) {
         for (let i=0; i<self.path.length; i++) {
             let key = self.path[self.path.length - i];
             let subKey = tree.path[tree.path.length - i];
@@ -106,7 +74,7 @@ export const Tree = {
         }
         return true;
     },
-    within<T>(self: TreeType<T>, tree: TreeType<T>) {
+    within(self: TreeType, tree: TreeType) {
         return Tree.contains(tree, self);
     },
 }
