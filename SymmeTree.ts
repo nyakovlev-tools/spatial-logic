@@ -1,85 +1,42 @@
-import { Tree, TreeType } from "./Tree";
-import { SorTreeType } from "./SorTree";
+import { Tree, TreeType, Path } from "./Tree";
+import { SorTree, SorTreeType, SorTreeProps, Comparator } from "./SorTree";
 
 export type SymmeTreeType<T> = TreeType<T> & {
-    inverse?: SorTreeType<SymmeTreeType<T>>
+    root?: SymmeTreeType<T>
+    parent?: SymmeTreeType<T>
+    inverse: SorTreeType<SymmeTreeType<T>>
+}
+
+export type SymmeTreeProps<T> = SorTreeProps<T> & {
+    tree?: SymmeTreeType<T>
+    compare?: Comparator<SymmeTreeType<T>>
 }
 
 export const SymmeTree = {
-    // init<T>(self: {}, props?: SorTreeProps<T>): SorTreeType<T> { return {
-    //     ...Tree.init<T>(self, props),
-    //     parent: props?.parent,
-    //     compare: wrapCompare<T>(props?.compare),
-    //     downstream: [],
-    // }},
+    ...Tree,
+    init<T>(self: {}, props?: SymmeTreeProps<T>): SymmeTreeType<T> {
+        let base: TreeType<T> = Tree.init<T>(self, {init: SymmeTree.init, ...props});
+        let tree = {
+            ...base,
+            root: props?.tree?.root,
+            parent: props?.tree,
+            inverse: props?.tree
+                ? SorTree.scope(props.tree.root!.inverse, base.path.reverse(), true)!
+                : SorTree.init({}, {compare: props?.compare})
+        };
+        SorTree.assign(tree.inverse, tree);
+        return tree;
+    },
+    supersets<T>(self: SymmeTreeType<T>): Array<SymmeTreeType<T>> {
+        let supersets: Array<SymmeTreeType<T>> = [];
+        let tree: SorTreeType<SymmeTreeType<T>> | undefined = self.inverse;
+        while (tree) {
+            supersets.push(tree.value!);
+            tree = tree.parent;
+        }
+        return supersets;
+    },
+    subsets<T>(self: SymmeTreeType<T>): Array<SymmeTreeType<T>> {
+        return SorTree.map(self.inverse, stree => stree);
+    },
 };
-
-export class CSymmeTree<T> {
-    tree: Tree<SymmeTree<T>>
-    inverse?: SorTree<SymmeTree<T>>
-    private slot: Slot<T>
-
-    constructor(props?: { tree?: Tree<SymmeTree<T>> }) {
-        if (props?.tree) {
-            this.tree = props.tree
-        } else {
-            this.tree = new Tree();
-            this.inverse = new SorTree();
-            this.inverse.assign(this);
-        }
-        this.tree.assign(this);
-        this.slot = new Slot();
-    }
-
-    path() { return this.tree.path(); }
-
-    assign(value: T) {
-        // TODO: If adding a size param to SymmeTree, provide similar counting logic to Tree
-        this.slot.assign(value);
-    }
-
-    current() {
-        return this.slot.current();
-    }
-
-    assigned() {
-        return this.slot.assigned();
-    }
-
-    scope(path: Path, active?: boolean): SymmeTree<T> | undefined {
-        let tree: Tree<SymmeTree<T>> | undefined = this.tree;
-        let stree;
-        for (let key of path) {
-            tree = tree!.scope([key], active);
-            if (!tree) return;
-            if (!tree.assigned() && active) tree.assign(new SymmeTree({ tree }));
-            stree = tree.current();
-            if (stree && !stree.inverse) {
-                let inverse = tree!.root().current()!.inverse!.scope(stree.tree.path(), true)!;
-                stree.inverse = inverse;
-            }
-        }
-        return stree;
-    }
-
-    unscope(path: Path) { return this.tree.unscope(path).current()!; }
-
-    supersets(): Array<T> {
-        let inverse = this.tree.root().current()!.inverse!;
-        let supersets = inverse?.assigned() ? [inverse.current()!] : [];
-        for (let key of this.tree.path().reverse()) {
-            inverse = inverse.scope([key], false)!;
-            if (inverse.assigned()) supersets.push(inverse.current()!);
-        }
-        return supersets
-            .filter(stree => stree.assigned())
-            .map(stree => stree.current()!);
-    }
-
-    subsets(): Array<T> {
-        return this.inverse!
-            .map(stree => stree)
-            .filter(stree => stree.assigned())
-            .map(stree => stree.current()!);
-    }
-}

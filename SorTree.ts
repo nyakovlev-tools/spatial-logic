@@ -1,9 +1,4 @@
-
-// NOTE: sorting is currently only useful for the inverse tree, since the origin of overlapping spaces is at the path tip.
-// Thus, a sorted tree object may be bet implemented as a SymmeTree, but the inverted tree is a sorted tree.
-// Perhaps SymmeTree will depend on this type, and this type will just wrap a plain tree?
-
-import { Path, Tree, TreeType, TreeProps } from "./Tree"
+import { Tree, TreeType, TreeProps } from "./Tree"
 
 export type Comparator<T> = (a: T, b: T) => number
 
@@ -39,11 +34,12 @@ export function binaryInsert<T>(array: T[], insertValue: T, comparator: Comparat
 }
 
 export type SorTreeProps<T> = TreeProps<T> & {
-    parent?: SorTreeType<T>
+    tree?: SorTreeType<T>
     compare?: Comparator<T>
 }
 
 export type SorTreeType<T> = TreeType<T> & {
+    root?: SorTreeType<T>
     parent?: SorTreeType<T>
     compare?: (a: SorTreeType<T>, b: SorTreeType<T>) => number
     downstream: Array<SorTreeType<T>>
@@ -55,9 +51,11 @@ function wrapCompare<T>(compare?: Comparator<T>) {
 }
 
 export const SorTree = {
+    ...Tree,
     init<T>(self: {}, props?: SorTreeProps<T>): SorTreeType<T> { return {
-        ...Tree.init<T>(self, props),
-        parent: props?.parent,
+        ...Tree.init<T>(self, {init: SorTree.init, ...props}),
+        root: props?.tree?.root,
+        parent: props?.tree,
         compare: wrapCompare<T>(props?.compare),
         downstream: [],
     }},

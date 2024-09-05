@@ -19,6 +19,7 @@ export type TreeType<T> = SlotType<T> & {
 }
 
 export const Tree = {
+    ...Slot,
     init<T>(self: {}, props?: TreeProps<T>): TreeType<T> {
         let _self: TreeType<T> = {
             ...Slot.init(self),
@@ -65,8 +66,8 @@ export const Tree = {
             self.assigned ? [f(self.value!)] : []
         )
     },
-    scope<T>(self: TreeType<T>, path: Path, active?: boolean) {
-        let tree: TreeType<T> = self;
+    scope<T, Self extends TreeType<T> = TreeType<T>>(self: Self, path: Path, active?: boolean) {
+        let tree: Self = self;
         while (path.length) {
             let key = path[0];
             // TODO: handle filters
@@ -76,17 +77,17 @@ export const Tree = {
                 subTree = Tree.create(self, key);
                 tree.keys.set(key, subTree);
             }
-            tree = subTree;
+            tree = subTree as Self;
             path = path.slice(1)
         }
         return tree;
     },
-    unscope<T>(self: TreeType<T>, path: Path) {
-        let target: TreeType<T> = self;
+    unscope<T, Self extends TreeType<T> = TreeType<T>>(self: Self, path: Path) {
+        let target: Self = self;
         for (let key of path) {
             if (typeof(key) == 'string') {
                 if (target.path[target.path.length - 1] != key) throw `tried to unscope ${key} at ${target.path[target.path.length - 1]}`;
-                target = target.parent!;
+                target = target.parent! as Self;
             } else {
                 // TODO: handle filters
             }
